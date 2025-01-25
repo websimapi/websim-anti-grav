@@ -2,6 +2,10 @@ import { scene, camera, renderer, ship, shipVelocity, CONSTANTS } from './game.j
 import { detectPose, isCalibrating, calibrationData } from './controls.js';
 import { getElements } from './utils.js';
 
+let lastVerticalMovement = 0;
+let isJumping = false;
+let isCrouching = false;
+
 export async function updateGame() {
   requestAnimationFrame(updateGame);
 
@@ -27,27 +31,43 @@ function updateShipPosition(pose) {
     const leanAmount = (shoulderMidpoint - calibrationData.shoulderMidpoint) / 100;
     shipVelocity.x = leanAmount * 0.1;
 
-    // Calculate jump/crouch (acceleration/braking)
+    // Calculate vertical position relative to calibration
     const currentHipY = (leftHip.y + rightHip.y) / 2;
     const verticalMovement = calibrationData.hipY - currentHipY;
-    let verticalSpeed = 0;
-
-    if (verticalMovement > 30) {
-      verticalSpeed = 0.1; // Accelerate
-    } else if (verticalMovement < -10) {
-      verticalSpeed = -0.1; // Brake
+    
+    // Detect state changes
+    const wasJumping = isJumping;
+    const wasCrouching = isCrouching;
+    
+    // Update states
+    isJumping = verticalMovement > 50; // Requires more significant jump
+    isCrouching = verticalMovement < -20;
+    
+    // Handle movement based on states
+    if (isJumping && !wasJumping) {
+      // Initial jump impulse
+      shipVelocity.y = 0.2;
+    } else if (isCrouching) {
+      // Acceleration while crouching
+      shipVelocity.y += 0.01;
+    } else if (Math.abs(verticalMovement) < 15) {
+      // Normal height slows down
+      shipVelocity.y *= 0.95;
     }
-
-    shipVelocity.y += verticalSpeed;
 
     // Apply gravity and update position
     shipVelocity.add(CONSTANTS.gravity);
     ship.position.add(shipVelocity);
 
+    // Clamp vertical velocity
+    shipVelocity.y = Math.max(-0.2, Math.min(0.2, shipVelocity.y));
+
     handleCollisions();
     updateShipMovement();
     updateCamera();
     updateSpeedometer();
+    
+    lastVerticalMovement = verticalMovement;
   }
 }
 

@@ -26,7 +26,7 @@ export async function detectPose() {
 export async function calibrate() {
   const { statusOverlay } = getElements();
   isCalibrating = true;
-  statusOverlay.textContent = "Calibrating... Stand straight and center yourself.";
+  statusOverlay.textContent = "Calibrating... Stand in a neutral position, facing the camera.";
   
   await new Promise(resolve => setTimeout(resolve, 3000));
   
@@ -44,7 +44,7 @@ export async function calibrate() {
   }
 
   isCalibrating = false;
-  statusOverlay.textContent = "Calibration complete! Let's race!";
+  statusOverlay.textContent = "Calibration complete! Lean to steer, jump to boost upward, crouch to accelerate!";
 }
 
 export { calibrationData };
