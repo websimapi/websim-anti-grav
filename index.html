@@ -65,19 +65,32 @@
   </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
-<div id="webcamPreview">
-  <video id="webcamVideo" playsinline></video>
-</div>
-<button id="calibrateBtn">Calibrate</button>
-<div id="statusOverlay">Loading...</div>
-<div id="speedometer">Speed: 0 km/h</div>
+  <div id="titleScreen">
+    <h1>Anti Grav Racer</h1>
+    <p>Control your ship using body movements:</p>
+    <ul>
+      <li>Lean left/right to steer</li>
+      <li>Jump to accelerate</li>
+      <li>Crouch to brake</li>
+    </ul>
+    <button id="startBtn">Start Game</button>
+  </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+  <div id="gameScreen" style="display: none;">
+    <canvas id="gameCanvas"></canvas>
+    <div id="webcamPreview">
+      <video id="webcamVideo" playsinline></video>
+    </div>
+    <button id="calibrateBtn">Calibrate</button>
+    <div id="statusOverlay">Loading...</div>
+    <div id="speedometer">Speed: 0 km/h</div>
+  </div>
 
-<script type="module" src="js/main.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+  <script type="module" src="js/main.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
