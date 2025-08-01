@@ -5,20 +5,42 @@ import { getElements } from './utils.js';
 let lastVerticalMovement = 0;
 let isJumping = false;
 let isCrouching = false;
+let lastPoseTime = 0;
+let lastSpeedUpdate = 0;
 
 export async function updateGame() {
   requestAnimationFrame(updateGame);
 
-  if (!isCalibrating) {
+  const now = performance.now();
+  
+  // Only check pose every 50ms to reduce CPU usage
+  if (!isCalibrating && now - lastPoseTime > 50) {
     const pose = await detectPose();
-    updateShipPosition(pose);
+    if (pose) updateShipPosition(pose);
+    lastPoseTime = now;
   }
 
+  // Update physics every frame
+  updatePhysics();
   renderer.render(scene, camera);
 }
 
+function updatePhysics() {
+  // Apply gravity and update position
+  shipVelocity.add(CONSTANTS.gravity);
+  ship.position.add(shipVelocity);
+
+  // Clamp vertical velocity
+  shipVelocity.y = Math.max(-0.2, Math.min(0.2, shipVelocity.y));
+
+  handleCollisions();
+  updateShipMovement();
+  updateCamera();
+  updateSpeedometer();
+}
+
 function updateShipPosition(pose) {
-  if (!pose || !calibrationData) return;
+  if (!calibrationData) return;
 
   const leftShoulder = pose.keypoints.find(kp => kp.name === 'left_shoulder');
   const rightShoulder = pose.keypoints.find(kp => kp.name === 'right_shoulder');
@@ -35,37 +57,29 @@ function updateShipPosition(pose) {
     const currentHipY = (leftHip.y + rightHip.y) / 2;
     const verticalMovement = calibrationData.hipY - currentHipY;
     
-    // Detect state changes
+    // Detect state changes with improved thresholds
     const wasJumping = isJumping;
     const wasCrouching = isCrouching;
     
-    // Update states
-    isJumping = verticalMovement > 50; // Requires more significant jump
-    isCrouching = verticalMovement < -20;
+    // Update states with adjusted sensitivity
+    isJumping = verticalMovement > 80; // Higher threshold for jump
+    isCrouching = verticalMovement < -30; // Lower threshold for crouch
     
     // Handle movement based on states
     if (isJumping && !wasJumping) {
-      // Initial jump impulse
-      shipVelocity.y = 0.2;
-    } else if (isCrouching) {
-      // Acceleration while crouching
-      shipVelocity.y += 0.01;
-    } else if (Math.abs(verticalMovement) < 15) {
-      // Normal height slows down
-      shipVelocity.y *= 0.95;
+      // Jump only triggers from neutral or crouch, not from jump
+      if (!wasJumping) {
+        shipVelocity.y = 0.15;
+      }
+    } else if (isCrouching && !wasJumping) {
+      // Accelerate while crouching (but not jumping)
+      shipVelocity.y = Math.max(0.01, shipVelocity.y + 0.008);
+    } else if (Math.abs(verticalMovement) < 20) {
+      // Normal height - gradual slowdown
+      if (!wasJumping) {
+        shipVelocity.y *= 0.98;
+      }
     }
-
-    // Apply gravity and update position
-    shipVelocity.add(CONSTANTS.gravity);
-    ship.position.add(shipVelocity);
-
-    // Clamp vertical velocity
-    shipVelocity.y = Math.max(-0.2, Math.min(0.2, shipVelocity.y));
-
-    handleCollisions();
-    updateShipMovement();
-    updateCamera();
-    updateSpeedometer();
     
     lastVerticalMovement = verticalMovement;
   }
@@ -78,8 +92,8 @@ function handleCollisions() {
     ship.position.x = (CONSTANTS.tunnelRadius - 0.5) * Math.cos(angle);
     ship.position.y = (CONSTANTS.tunnelRadius - 0.5) * Math.sin(angle);
     
-    shipVelocity.x *= -0.5;
-    shipVelocity.y *= -0.5;
+    shipVelocity.x *= -0.3; // Reduced bounce
+    shipVelocity.y *= -0.3;
   }
 }
 
@@ -98,10 +112,14 @@ function updateCamera() {
 }
 
 function updateSpeedometer() {
+  const now = performance.now();
+  if (now - lastSpeedUpdate < 100) return; // Update every 100ms
+  
   const speed = Math.sqrt(
     shipVelocity.x ** 2 + 
     shipVelocity.y ** 2 + 
     CONSTANTS.forwardSpeed ** 2
   ) * 100;
   getElements().speedometer.textContent = `Speed: ${speed.toFixed(1)} km/h`;
+  lastSpeedUpdate = now;
 }
