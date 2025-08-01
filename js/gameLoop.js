@@ -55,15 +55,15 @@ function updateShipPosition(pose) {
 
     // Calculate vertical position relative to calibration
     const currentHipY = (leftHip.y + rightHip.y) / 2;
-    const verticalMovement = calibrationData.hipY - currentHipY;
+    const verticalMovement = currentHipY - calibrationData.hipY; // Inverted calculation
     
     // Detect state changes with improved thresholds
     const wasJumping = isJumping;
     const wasCrouching = isCrouching;
     
-    // Update states with adjusted sensitivity
-    isJumping = verticalMovement > 80; // Higher threshold for jump
-    isCrouching = verticalMovement < -30; // Lower threshold for crouch
+    // Update states with proper thresholds
+    isJumping = verticalMovement < -60; // Negative = higher position = jumping
+    isCrouching = verticalMovement > 30; // Positive = lower position = crouching
     
     // Handle movement based on states
     if (isJumping && !wasJumping) {
@@ -71,9 +71,10 @@ function updateShipPosition(pose) {
       if (!wasJumping) {
         shipVelocity.y = 0.15;
       }
-    } else if (isCrouching && !wasJumping) {
-      // Accelerate while crouching (but not jumping)
-      shipVelocity.y = Math.max(0.01, shipVelocity.y + 0.008);
+    } else if (isCrouching) {
+      // Accelerate based on crouch depth - stronger crouch = faster
+      const crouchStrength = Math.min(Math.abs(verticalMovement - 30) / 50, 1);
+      shipVelocity.y = Math.max(0.01, shipVelocity.y + (0.008 + crouchStrength * 0.012));
     } else if (Math.abs(verticalMovement) < 20) {
       // Normal height - gradual slowdown
       if (!wasJumping) {
